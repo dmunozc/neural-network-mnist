@@ -7,7 +7,7 @@ out of sample accuracy after 1 epoch, and 86% accuracy after 10 epochs.
 import numpy as np
 from numpy import random
 from numpy import array
-import csv
+import pandas as pd
 import argparse
 
 
@@ -17,7 +17,7 @@ def normalize_and_dot_product(row, weights):
     xs = array(list(map(int, row[1:]))) / 255
     xs = np.concatenate(([1], xs))
     # Calculate the dot product of the input and weights.
-    return (weights * xs).sum(axis=1)
+    return np.dot(weights, xs)
 
 
 def recalculate_weights(training, weights, learning_rate):
@@ -25,16 +25,17 @@ def recalculate_weights(training, weights, learning_rate):
     new_weights = weights.copy()
     for row in training:
         # Normalize the input data and add the bias value.
-        xs = array(list(map(int, row[1:]))) / 255
+        xs = row[1:] / 255
         xs = np.concatenate(([1], xs))
         # Calculate the dot product of the input and weights.
-        w_x = (new_weights * xs).sum(axis=1)
+        w_x = np.dot(new_weights, xs)
         # For each perceptron calculate the required learning rate and
         # use it to calculate the new weights.
         for i in range(len(new_weights)):
             y_pred = 1 if (w_x[i]) > 0 else 0
             y_actual = 1 if i == int(row[0]) else 0
             new_weights[i] += learning_rate * (y_actual - y_pred) * xs
+
     return new_weights
 
 
@@ -78,18 +79,12 @@ def main(training_file_path, test_file_path, learning_rate=0.1, epochs=50):
     at the end of training.
     """
     # Open CSV training and test files.
-    training_data = csv.reader(open(training_file_path), delimiter=",")
-    test_data = csv.reader(open(test_file_path), delimiter=",")
-    training = []
-    test = []
-    # Add the CSV data into arrays since the data is going to be used
-    # multiple times.
-    for row in training_data:
-        training.append(row)
-    for row in test_data:
-        test.append(row)
+    trainingData = pd.read_csv(training_file_path, index_col=None, header=None)
+    testData = pd.read_csv(test_file_path, index_col=None, header=None)
+    training = trainingData.values
+    test = testData.values
     # Create a random weight vector.
-    weights = [random.uniform(-0.5, 0.5, 785) for _ in range(10)]
+    weights = np.random.uniform(-0.5, 0.5, size=(10, trainingData.shape[1]))
     # For each epoch print the accuracy of the test and training sets.
     #
     # Recalculate the weights using the training formula for

@@ -8,7 +8,7 @@ out of sample accuracy after 1 epoch, and 93% accuracy after 10 epochs.
 import numpy as np
 from numpy import random
 from numpy import array
-import csv
+import pandas as pd
 import argparse
 
 
@@ -18,27 +18,13 @@ def confusion_matrix(data, in_to_hid_weights, hid_to_out_weights):
     matrix = [[0 for _ in range(10)] for _ in range(10)]
     for row in data:
         # Normalize the input data and add the bias value.
-        xs = array(list(map(int, row[1:]))) / 255
+        xs = row[1:] / 255
         xs = np.concatenate(([1], xs))
         # Calculate the sigmoid function of input to hidden values.
-        h_x = array(
-            list(
-                map(
-                    lambda z: 1 / (1 + (np.exp(-z))),
-                    (in_to_hid_weights * xs).sum(axis=1),
-                )
-            )
-        )
+        h_x = 1 / (1 + (np.exp(-np.dot(in_to_hid_weights, xs))))
         h_x = np.concatenate(([1], h_x))
         # Calculate the sigmoid function of hidden to output values.
-        o_h = array(
-            list(
-                map(
-                    lambda z: 1 / (1 + (np.exp(-z))),
-                    (hid_to_out_weights * h_x).sum(axis=1),
-                )
-            )
-        )
+        o_h = 1 / (1 + (np.exp(-np.dot(hid_to_out_weights, h_x))))
         # The maximum value of the output is the prediction of the neural
         # network.
         prediction = np.where(o_h == max(o_h))[0][0]
@@ -67,35 +53,17 @@ def recalculate_weights(
     prev_hid_to_out_weights = new_hid_to_out_weights
     for row in data:
         # Normalize the input data and add the bias value.
-        xs = array(list(map(int, row[1:]))) / 255
+        xs = row[1:] / 255
         xs = np.concatenate(([1], xs))
         # Calculate the sigmoid function of input to hidden values.
-        h_x = array(
-            list(
-                map(
-                    lambda z: 1 / (1 + (np.exp(-z))),
-                    (new_in_to_hid_weights * xs).sum(axis=1),
-                )
-            )
-        )
+        h_x = 1 / (1 + (np.exp(-np.dot(new_in_to_hid_weights, xs))))
         h_x = np.concatenate(([1], h_x))
         # Calculate the sigmoid function of hidden to output values.
-        o_h = array(
-            list(
-                map(
-                    lambda z: 1 / (1 + (np.exp(-z))),
-                    (new_hid_to_out_weights * h_x).sum(axis=1),
-                )
-            )
-        )
+        o_h = 1 / (1 + (np.exp(-np.dot(new_hid_to_out_weights, h_x))))
         # Create matrix of target values. Each column has only 1
         # positive value
-        ts = array(
-            [
-                (pos_target if x == int(row[0]) else neg_target)
-                for x in range(10)
-            ]
-        )
+        ts = np.full((10, ), neg_target)
+        ts[int(row[0])] = pos_target
         # Calculate the change of weight needed for output to hidden.
         delta_o = o_h * (1 - o_h) * (ts - o_h)
         delta_h = []
@@ -104,18 +72,12 @@ def recalculate_weights(
         # Need to iterate over all previous input to hidden weights to
         # calculate the new weight values.
         for j in range(len(new_in_to_hid_weights)):
-            s = 0
-            for k in range(len(delta_o)):
-                s += new_hid_to_out_weights[k][j + 1] * delta_o[k]
+            s = np.dot(new_hid_to_out_weights[:, j + 1], delta_o)
             delta_h.append(h_x[j + 1] * (1 - h_x[j + 1]) * s)
         delta_h = array(delta_h)
         # calculate the momentum values for the weights.
-        momentum_o = momentum * np.subtract(
-            new_hid_to_out_weights, prev_hid_to_out_weights
-        )
-        momentum_h = momentum * np.subtract(
-            new_in_to_hid_weights, prev_in_to_hid_weights
-        )
+        momentum_o = momentum * (new_hid_to_out_weights - prev_hid_to_out_weights)
+        momentum_h = momentum * (new_in_to_hid_weights - prev_in_to_hid_weights)
         # keep a copy of the current weights; which in the next iteration
         # are used to calculate the momentum.
         prev_hid_to_out_weights = new_hid_to_out_weights.copy()
@@ -137,27 +99,13 @@ def compute_accuracy(data, in_to_hid_weights, hid_to_out_weights):
     accuracy = 0
     for row in data:
         # normalize the input data and add the bias value.
-        xs = array(list(map(int, row[1:]))) / 255
+        xs = row[1:] / 255
         xs = np.concatenate(([1], xs))
         # calculate the sigmoid function of input to hidden values.
-        h_x = array(
-            list(
-                map(
-                    lambda z: 1 / (1 + np.exp(-z)),
-                    (in_to_hid_weights * xs).sum(axis=1),
-                )
-            )
-        )
+        h_x = 1 / (1 + (np.exp(-np.dot(in_to_hid_weights, xs))))
         h_x = np.concatenate(([1], h_x))
         # calculate the sigmoid function of hidden to output values.
-        o_h = array(
-            list(
-                map(
-                    lambda z: 1 / (1 + np.exp(-z)),
-                    (hid_to_out_weights * h_x).sum(axis=1),
-                )
-            )
-        )
+        o_h = 1 / (1 + (np.exp(-np.dot(hid_to_out_weights, h_x))))
         # The maximum value of the output is the prediction of the
         # neural network.
         prediction = np.where(o_h == max(o_h))[0][0]
@@ -181,28 +129,19 @@ def main(
     at the end of training.
     """
     # Open CSV training and test files.
-    trainingData = csv.reader(open(training_file_path), delimiter=",")
-    testData = csv.reader(open(test_file_path), delimiter=",")
-    training = []
-    test = []
-    # Add the CSV data into arrays since the data is going to be used
-    # multiple times.
-    for row in trainingData:
-        training.append(row)
-    for row in testData:
-        test.append(row)
+    trainingData = pd.read_csv(training_file_path, index_col=None, header=None)
+    testData = pd.read_csv(test_file_path, index_col=None, header=None)
+    training = trainingData.values
+    test = testData.values
 
     # Set training conditions.
     pos_target = 0.9
     neg_target = 0.1
+
     # Create a random weight vector that connects to all hidden layers.
-    in_to_hid_weights = [
-        random.uniform(-0.05, 0.05, 785) for _ in range(hidden_layers)
-    ]
+    in_to_hid_weights = np.random.uniform(-0.05, 0.05, size=(hidden_layers, trainingData.shape[1]))
     # Create a random weight vector that connects to output weights.
-    hid_to_out_weights = [
-        random.uniform(-0.05, 0.05, hidden_layers + 1) for _ in range(10)
-    ]
+    hid_to_out_weights = np.random.uniform(-0.05, 0.05, size=(10, hidden_layers+1))
     # For each epoch print the accuracy of the test and training sets.
     #
     # Recalculate the weights using the training formula for neural
@@ -249,7 +188,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("-lr", dest="lr", help="learning rate", default=0.1)
     parser.add_argument("-m", dest="mom", help="momentum", default=0.5)
-    parser.add_argument("-hu", dest="hu", help="hidden_units", default=20)
+    parser.add_argument("-hu", dest="hu", help="hidden_units", default=10)
     parser.add_argument("-e", dest="epochs", help="epochs", default=10)
     args = parser.parse_args()
     main(
