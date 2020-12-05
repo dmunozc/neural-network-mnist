@@ -14,7 +14,7 @@ import argparse
 def normalize_and_dot_product(row, weights):
     """Normalize input, add bias, and calculate dot product."""
     # Normalize the input data and add the bias value.
-    xs = array(list(map(int, row[1:]))) / 255
+    xs = row[1:] / 255
     xs = np.concatenate(([1], xs))
     # Calculate the dot product of the input and weights.
     return np.dot(weights, xs)
