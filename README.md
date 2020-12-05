@@ -17,11 +17,11 @@ It achieves an 83% out of sample accuracy after 1 epoch, and 86% accuracy after 
 ### Neural network performance
 It achieves a 91% out of sample accuracy after 1 epoch, and 93% accuracy after 10 epochs with 20 hidden layers.
 
-###Training and Test Accuracy for multiple hidden units
+### Training and Test Accuracy for multiple hidden units
 ![ROC of the SVM](training_accuracy.png)
 
-###Test and Test Accuracy for multiple hidden units
+### Test and Test Accuracy for multiple hidden units
 ![ROC of the SVM](test_accuracy.png)
 
-###Confusion Matrix for 20 hidden layers
+### Confusion Matrix for 20 hidden layers
 ![ROC of the SVM](20_cf.png)
