@@ -102,18 +102,8 @@ def main(training_file_path, test_file_path, learning_rate=0.1, epochs=50):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-train",
-        dest="train",
-        help="mnist train dataset",
-        default="mnist_train.csv",
-    )
-    parser.add_argument(
-        "-test",
-        dest="test",
-        help="mnist test dataset",
-        default="mnist_test.csv",
-    )
+    parser.add_argument("-train", dest="train", help="mnist train dataset", default="mnist_train.csv")
+    parser.add_argument("-test", dest="test", help="mnist test dataset", default="mnist_test.csv")
     parser.add_argument("-lr", dest="lr", help="learning rate", default=0.1)
     parser.add_argument("-e", dest="epochs", help="epochs", default=10)
     args = parser.parse_args()

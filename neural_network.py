@@ -34,15 +34,7 @@ def confusion_matrix(data, in_to_hid_weights, hid_to_out_weights):
     return matrix
 
 
-def recalculate_weights(
-    data,
-    in_to_hid_weights,
-    hid_to_out_weights,
-    learning_rate,
-    momentum,
-    pos_target=0.9,
-    neg_target=0.1,
-):
+def recalculate_weights(data, in_to_hid_weights, hid_to_out_weights, lr, momentum, pos_val=0.9, neg_val=0.1):
     """Return new input and hidden weights.
 
     It implements momentum when calculating backpropagation.
@@ -62,8 +54,8 @@ def recalculate_weights(
         o_h = 1 / (1 + (np.exp(-np.dot(new_hid_to_out_weights, h_x))))
         # Create matrix of target values. Each column has only 1
         # positive value
-        ts = np.full((10, ), neg_target)
-        ts[int(row[0])] = pos_target
+        ts = np.full((10, ), neg_val)
+        ts[int(row[0])] = pos_val
         # Calculate the change of weight needed for output to hidden.
         delta_o = o_h * (1 - o_h) * (ts - o_h)
         delta_h = []
@@ -85,10 +77,10 @@ def recalculate_weights(
 
         # calculate the new weights.
         new_hid_to_out_weights += (
-            delta_o[:, np.newaxis] * learning_rate * h_x
+            delta_o[:, np.newaxis] * lr * h_x
         ) + momentum_o
         new_in_to_hid_weights += (
-            delta_h[:, np.newaxis] * learning_rate * xs + momentum_h
+            delta_h[:, np.newaxis] * lr * xs + momentum_h
         )
 
     return new_in_to_hid_weights, new_hid_to_out_weights
@@ -116,14 +108,7 @@ def compute_accuracy(data, in_to_hid_weights, hid_to_out_weights):
     return accuracy / len(data)
 
 
-def main(
-    training_file_path,
-    test_file_path,
-    learning_rate=0.1,
-    epochs=50,
-    hidden_layers=20,
-    momentum=0.5,
-):
+def main(training_file_path, test_file_path, lr=0.1, epochs=50, hidden_layers=20, momentum=0.5):
     """
     Prints accuracy after every epoch, and confusion matrix
     at the end of training.
@@ -135,8 +120,8 @@ def main(
     test = testData.values
 
     # Set training conditions.
-    pos_target = 0.9
-    neg_target = 0.1
+    pos_val = 0.9
+    neg_val = 0.1
 
     # Create a random weight vector that connects to all hidden layers.
     in_to_hid_weights = np.random.uniform(-0.05, 0.05, size=(hidden_layers, trainingData.shape[1]))
@@ -152,10 +137,10 @@ def main(
             training,
             in_to_hid_weights,
             hid_to_out_weights,
-            learning_rate,
+            lr,
             momentum,
-            pos_target,
-            neg_target,
+            pos_val,
+            neg_val,
         )
         print(
             "Training accuracy",
@@ -174,18 +159,8 @@ def main(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-train",
-        dest="train",
-        help="mnist train dataset",
-        default="mnist_train.csv",
-    )
-    parser.add_argument(
-        "-test",
-        dest="test",
-        help="mnist test dataset",
-        default="mnist_test.csv",
-    )
+    parser.add_argument("-train", dest="train", help="mnist train dataset", default="mnist_train.csv")
+    parser.add_argument("-test", dest="test", help="mnist test dataset", default="mnist_test.csv")
     parser.add_argument("-lr", dest="lr", help="learning rate", default=0.1)
     parser.add_argument("-m", dest="mom", help="momentum", default=0.5)
     parser.add_argument("-hu", dest="hu", help="hidden_units", default=10)
@@ -194,7 +169,7 @@ if __name__ == "__main__":
     main(
         args.train,
         args.test,
-        learning_rate=float(args.lr),
+        lr=float(args.lr),
         epochs=int(args.epochs),
         hidden_layers=int(args.hu),
         momentum=float(args.mom),
